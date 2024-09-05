@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title> SHOPEASY | CREATED BY ADITYA KHASH</title>
+    <!-- favicon -->
+    <link rel="icon" href="https://yt3.ggpht.com/a/AGF-l78km1YyNXmF0r3-0CycCA0HLA_i6zYn_8NZEg=s900-c-k-c0xffffffff-no-rj-mo" type="image/gif" sizes="16x16">
+    <!-- header links -->
+
+    <script src="https://kit.fontawesome.com/4a3b1f73a2.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Lato&display=swap" rel="stylesheet">
+    <!-- slider links -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.9.0/slick.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.9.0/slick-theme.min.css">
+</head>
+<body>
+    <!-- HEADER -->
+    <div id="header">
+        <a href="header.html"></a>
+
+    </div>
+
+    <!-- SLIDER -->
+    <div id="slider">
+        <a href="slider.html"></a>
+    </div>
+
+    <!-- CONTENT SECTION -->
+    <div id="content">
+        <a href="content.html"></a>
+    </div>
+
+    <!-- FOOTER -->
+    <div id="footer">
+        <a href="footer.html"></a>
+    </div>
+
+    <!-- slider JS START -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.9.0/slick.min.js"></script>
+    <script>
+        function load(url, elementId) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 400) {
+                    document.getElementById(elementId).innerHTML = xhr.responseText;
+                } else {
+                    console.error('Failed to load ' + url);
+                }
+            };
+            xhr.onerror = function () {
+                console.error('Error while loading ' + url);
+            };
+            xhr.send();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            load('header.html', 'header');
+            load('slider.html', 'slider');
+            load('content.html', 'content');
+            load('footer.html', 'footer');
+
+            $('#slider').slick({
+                dots: true,
+                infinite: true,
+                slidesToShow: 1,
+                slidesToScroll: 1,
+                autoplay: true,
+                autoplaySpeed: 1500,
+            });
+        });
+    </script>
+    <!-- content JS -->
+    <script src="javascript/content.js"></script>
+</body>
+</html>
