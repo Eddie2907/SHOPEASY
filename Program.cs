@@ -1,163 +1,109 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using MusicianBookingSystem.Exceptions;
-using MusicianBookingSystem.Models;
+using dotnetapp.Models;
+using dotnetapp.Services;
  
-namespace MusicianBookingSystem.Controllers
+namespace dotnetapp.Controllers
 {
-    // [Route("[controller]")]
-    public class BookingController : Controller
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrderController : ControllerBase
     {
-        private readonly ApplicationDbContext db;
+        public OrderService db;
  
-        public BookingController(ApplicationDbContext db1)
-        {
+        public OrderController(OrderService db1){
             db = db1;
         }
- 
-        public IActionResult Index()
-        {
-            var slots = db.Slots.ToList();
-            return View(slots);
+        [HttpGet]
+        public ActionResult GetAllOrders(){
+            var res = db.GetAllOrders();
+            return Ok(res);
         }
- 
-        public IActionResult Book(int id)
-        {
-            var slot = db.Slots.FirstOrDefault(s => s.SlotID == id);
-            if(slot == null)
-                return View(new Slot());
-            return View(slot);
+        [HttpGet("{OrderId}")]
+        public ActionResult GetOrderById(int orderId){
+            var res = db.GetOrderById(orderId);
+            if(res == null){
+                return NotFound();
+            }
+            return Ok(res);
         }
- 
         [HttpPost]
-        public IActionResult Book(int id, int Userid)
-        {
-            try
+        public async Task<ActionResult> AddOrder(Order obj){
+            if(obj == null)
             {
-                var slot = db.Slots.FirstOrDefault(s => s.SlotID == id);
-                if (slot == null)
-                    return NotFound();
-                if (slot.Bookings.Count >= 5)
-                    throw new SlotBookingException("Slot is full.");
-                if (slot.Bookings.Any(b => b.UserID == Userid))
-                    throw new SlotBookingException("You have already booked this slot.");
-                Booking booking = new Booking
-                {
-                    SlotID = id,
-                    UserID = Userid,
-                    Slot = slot
-
-                };
-                slot.Bookings.Add(booking);
-                db.Bookings.Add(booking);
-                db.SaveChanges();
-                return View("Book",slot);
+                return BadRequest();
             }
-            catch(SlotBookingException ex)
-            {
-                ViewBag.Error = ex.Message;
-                return View("Book", db.Slots.FirstOrDefault(s => s.SlotID == id));
-            }
+            db.AddOrder(obj);
+            return CreatedAtAction("AddOrder",obj);
         }
-        public IActionResult Summary(int Userid)
-        {
-            var b=db.Bookings.Where(bb=>bb.UserID == Userid).ToList();
-            return View(b);
-        }
- 
- 
     }
 }
-
+ 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using MusicianBookingSystem.Models;
+using dotnetapp.Models;
  
-namespace MusicianBookingSystem.Controllers
-{
-    // [Route("[controller]")]
-    public class SlotController : Controller
-    {
-        private readonly ApplicationDbContext db;
+namespace dotnetapp.Services{
+    public class OrderService{
+        public static List<Order> orders = new List<Order>();
  
-        public SlotController(ApplicationDbContext db1)
-        {
-            db=db1;
+        public List<Order> GetAllOrders(){
+            return orders.ToList();
         }
- 
-        public IActionResult Index()
-        {
-            var slots = db.Slots.ToList();
-            return View(slots);
+        public Order GetOrderById(int id){
+            return orders.Find(r => r.OrderId == id);
+        }
+        public void AddOrder(Order obj){
+            orders.Add(obj);
         }
     }
 }
-
-using System.Reflection.Emit;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
-using MusicianBookingSystem.Models;
-using System.Collections.Generic;
-
-namespace MusicianBookingSystem.Models
-{
-    public class ApplicationDbContext : DbContext
-    {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext>options):base(options){}
  
-        public DbSet<Slot>Slots{get;set;}
-         public DbSet<Booking> Bookings {get; set;}
-        
-    }
+using dotnetapp.Services;
+ 
+var builder = WebApplication.CreateBuilder(args);
+ 
+// Add Event services to the container.
+ 
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddScoped<OrderService>();
+builder.Services.AddSwaggerGen();
+ 
+var app = builder.Build();
+ 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
  
- using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
+app.UseHttpsRedirection();
  
-namespace MusicianBookingSystem.Models
-{
-    public class Booking{
-
-        public int BookingID {get; set;}
-
-        public int SlotID {get; set;}
-
-        public int UserID {get; set;}
-
-        public Slot Slot {get; set;}
-    }
-}
-
+app.UseAuthorization();
+ 
+app.MapControllers();
+ 
+app.Run();
+ 
+ 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
  
-namespace MusicianBookingSystem.Models
+namespace dotnetapp.Models
 {
-    public class Slot
+    public class Order
     {
-        [Key]
-        public int SlotID{get;set;}
-        public DateTime Time{get;set;}
-        public int Duration{get;set;}
-        public int Capacity{get;set;}
-        public List<Booking> Bookings{get;set;}=new List<Booking>();
+        public int OrderId{get;set;}
+        public string CustomerName{get;set;}
+        public DateTime OrderDate {get;set;}
+        public decimal TotalAmount{get;set;}
+        public string Status{get;set;}
     }
 }
- 
