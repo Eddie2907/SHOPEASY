@@ -30,6 +30,8 @@ namespace MusicianBookingSystem.Controllers
         public IActionResult Book(int id)
         {
             var slot = db.Slots.FirstOrDefault(s => s.SlotID == id);
+            if(slot == null)
+                return View(new Slot());
             return View(slot);
         }
  
@@ -48,16 +50,19 @@ namespace MusicianBookingSystem.Controllers
                 Booking booking = new Booking
                 {
                     SlotID = id,
-                    UserID = Userid
+                    UserID = Userid,
+                    Slot = slot
+
                 };
+                slot.Bookings.Add(booking);
                 db.Bookings.Add(booking);
                 db.SaveChanges();
-                return RedirectToAction("Summary", new { Userid });
+                return View("Book",slot);
             }
             catch(SlotBookingException ex)
             {
                 ViewBag.Error = ex.Message;
-                return View();
+                return View("Book", db.Slots.FirstOrDefault(s => s.SlotID == id));
             }
         }
         public IActionResult Summary(int Userid)
@@ -69,7 +74,7 @@ namespace MusicianBookingSystem.Controllers
  
     }
 }
- 
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -98,12 +103,13 @@ namespace MusicianBookingSystem.Controllers
         }
     }
 }
- 
+
 using System.Reflection.Emit;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using MusicianBookingSystem.Models;
- 
+using System.Collections.Generic;
+
 namespace MusicianBookingSystem.Models
 {
     public class ApplicationDbContext : DbContext
@@ -111,11 +117,31 @@ namespace MusicianBookingSystem.Models
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext>options):base(options){}
  
         public DbSet<Slot>Slots{get;set;}
-        public DbSet<Booking>Bookings{get;set;}
+         public DbSet<Booking> Bookings {get; set;}
+        
     }
 }
  
+ using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
  
+namespace MusicianBookingSystem.Models
+{
+    public class Booking{
+
+        public int BookingID {get; set;}
+
+        public int SlotID {get; set;}
+
+        public int UserID {get; set;}
+
+        public Slot Slot {get; set;}
+    }
+}
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -131,7 +157,7 @@ namespace MusicianBookingSystem.Models
         public DateTime Time{get;set;}
         public int Duration{get;set;}
         public int Capacity{get;set;}
-        public ICollection<Booking> Bookings{get;set;}
+        public List<Booking> Bookings{get;set;}=new List<Booking>();
     }
 }
  
