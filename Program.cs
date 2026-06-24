@@ -1,4 +1,4 @@
-StudentService.cs
+EventService.cs
  
 using System;
 using System.Collections.Generic;
@@ -8,63 +8,59 @@ using dotnetapp.Models;
  
 namespace dotnetapp.Services
 {
-    public class StudentService
+    public class EventService
     {
-        private readonly List<Student> students;
-        public StudentService(){
-            students = new List<Student>(){
-                new Student{
-                    StudentId = 1,
-                    Name = "Alice",
-                    Age = 18,
-                    Grade = "A"
-                },
-                new Student{
-                    StudentId = 2,
-                    Name = "Bob",
-                    Age = 17,
-                    Grade = "B"
-                },
-                new Student{
-                    StudentId = 3,
-                    Name = "Charlie",
-                    Age = 16,
-                    Grade = "C"
-                }
-            };
+        private List<Event> events = new List<Event>(){
+            new Event{
+                EventId = 1,
+                Name = "Event 1",
+                Date = DateTime.Now.AddDays(7),
+                Location = "Location 1"
+            },
+            new Event{
+                EventId = 2,
+                Name = "Event 2",
+                Date = DateTime.Now.AddDays(14),
+                Location = "Location 2"
+            },
+            new Event{
+                EventId = 3,
+                Name = "Event 3",
+                Date = DateTime.Now.AddDays(21),
+                Location = "Location 3"
+            }
+        };
+        public List<Event> GetAllEvents(){
+            return events;
         }
-        public List<Student> GetAllStudents(){
-            return students;
+        public Event GetEventById(int eventId){
+            return events.FirstOrDefault(e => e.EventId == eventId);
         }
-        public Student GetStudentById(int studentId){
-            return students.FirstOrDefault(s => s.StudentId == studentId);
+        public Event CreateEvent(Event newEvent){
+            newEvent.EventId = events.Max(e => e.EventId) + 1;
+            events.Add(newEvent);
+            return newEvent;
         }
-        public Student CreateStudent(Student newStudent){
-            students.Add(newStudent);
-            return newStudent;
-        }
-        public bool UpdateStudent(int studentId, Student updatedStudent){
-            var student = students.FirstOrDefault(s => s.StudentId == studentId);
-            if(student == null){
+        public bool UpdateEvent(int eventId, Event updatedEvent){
+            var ev = events.FirstOrDefault(e => e.EventId == eventId);
+            if(ev == null){
                 return false;
             }
-            student.Name = updatedStudent.Name;
-            student.Age = updatedStudent.Age;
-            student.Grade = updatedStudent.Grade;
+            ev.Name = updatedEvent.Name;
+            ev.Date = updatedEvent.Date;
+            ev.Location = updatedEvent.Location;
             return true;
         }
-        public bool DeleteStudent(int studentId){
-            var student = students.FirstOrDefault(s => s.StudentId == studentId);
-            if(student == null){
-                return false;
+        public void DeleteEvent(int eventId){
+            var ev = events.FirstOrDefault(e => e.EventId == eventId);
+            if(ev != null){
+                events.Remove(ev);
             }
-            students.Remove(student);
-            return true;
         }
     }
 }
  
-StudentController.cs
+EventController.cs
  
 using System;
 using System.Collections.Generic;
@@ -73,116 +69,68 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
- 
 using dotnetapp.Services;
 using dotnetapp.Models;
  
 namespace dotnetapp.Controllers
-{   [ApiController]
+{
+    [ApiController]
     [Route("api/[controller]")]
-    public class StudentController : ControllerBase
+    public class EventController : ControllerBase
     {
-        private readonly StudentService db;
-        public StudentController(StudentService db1){
+        private readonly EventService db;
+        public EventController(EventService db1){
             db = db1;
         }
         [HttpGet]
-        public IActionResult GetAllStudents(){
-            var students = db.GetAllStudents();
-            if(students == null || students.Count == 0){
+        public IActionResult GetAllEvents(){
+            var events = db.GetAllEvents();
+            if(events.Count == 0){
                 return NoContent();
             }
-            return Ok(students);
+            return Ok(events);
         }
-        [HttpGet("{studentId}")]
-        public IActionResult GetStudentById(int studentId){
-            var student = db.GetStudentById(studentId);
-            if(student == null){
+        [HttpGet("{eventId}")]
+        public IActionResult GetEventById(int eventId){
+            var ev = db.GetEventById(eventId);
+            if(ev == null){
                 return NotFound();
             }
-            return Ok(student);
+            return Ok(ev);
         }
         [HttpPost]
-        public IActionResult CreateStudent(Student newStudent){
-            if(newStudent == null){
+        public IActionResult CreateEvent([FromBody] Event newEvent){
+            if(newEvent == null){
                 return BadRequest();
             }
-            db.CreateStudent(newStudent);
-            return Created("", newStudent);
+            db.CreateEvent(newEvent);
+            return CreatedAtAction(nameof(GetEventById),
+            new { eventId = newEvent.EventId},
+            newEvent);
         }
-        [HttpPut("{studentId}")]
-        public IActionResult UpdateStudent(int studentId, Student updatedStudent){
-            var res = db.UpdateStudent(studentId,updatedStudent);
+        [HttpPut("{eventId}")]
+        public IActionResult UpdateEvent(int eventId, [FromBody] Event updatedEvent){
+            if(updatedEvent == null){
+                return BadRequest();
+            }
+            bool res = db.UpdateEvent(eventId, updatedEvent);
             if(!res){
                 return NotFound();
             }
             return NoContent();
         }
-        [HttpDelete("{studentId}")]
-        public IActionResult DeleteStudent(int studentId){
-            var res = db.DeleteStudent(studentId);
-            if(!res){
+        [HttpDelete("{eventId}")]
+        public IActionResult DeleteEvent(int eventId){
+            var res = db.GetEventById(eventId);
+            if(res == null){
                 return NotFound();
             }
+            db.DeleteEvent(eventId);
             return NoContent();
         }
+       
     }
- 
-using dotnetapp.Services;
-using dotnetapp.Models;
- 
-var builder = WebApplication.CreateBuilder(args);
- 
-// Add Event services to the container.
- 
-builder.Services.AddControllers();
-builder.Services.AddSingleton<StudentService>(); // change this line here
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
- 
-var app = builder.Build();
- 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
 }
- 
-app.UseHttpsRedirection();
- 
-app.UseAuthorization();
- 
-app.MapControllers();
- 
-app.Run();
- 
-using dotnetapp.Services;
-using dotnetapp.Models;
- 
-var builder = WebApplication.CreateBuilder(args);
- 
-// Add Event services to the container.
- 
-builder.Services.AddControllers();
-builder.Services.AddSingleton<StudentService>(); // change this line here
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
- 
-var app = builder.Build();
- 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
- 
-app.UseHttpsRedirection();
- 
-app.UseAuthorization();
- 
-app.MapControllers();
- 
-app.Run();
  
 using System;
 using System.Collections.Generic;
@@ -191,11 +139,44 @@ using System.Threading.Tasks;
  
 namespace dotnetapp.Models
 {
-    public class Student
+    public class Event
     {
-        public int StudentId{get;set;}
-        public string Name {get;set;}
-        public int Age{get;set;}
-        public string Grade {get;set;}
+        public int EventId{get;set;}
+        public string Name{get;set;}
+        public DateTime Date{get;set;}
+        public string Location{get;set;}
     }
+   
 }
+ 
+program.cs
+ 
+using dotnetapp.Services;
+using dotnetapp.Models;
+ 
+var builder = WebApplication.CreateBuilder(args);
+ 
+// Add Event services to the container.
+ 
+builder.Services.AddControllers();
+builder.Services.AddSingleton<EventService>();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+ 
+var app = builder.Build();
+ 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+ 
+app.UseHttpsRedirection();
+ 
+app.UseAuthorization();
+ 
+app.MapControllers();
+ 
+app.Run();
+ 
+ 
