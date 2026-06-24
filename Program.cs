@@ -1,185 +1,179 @@
-
-using Microsoft.EntityFrameworkCore;
-namespace dotnetapp.Models;
-
-public class AppDbContext : DbContext
-{
-        public AppDbContext(DbContextOptions<AppDbContext> options)
-        : base(options)
-        {}
-   
-       
-       public DbSet <Student> Students {get; set;}
-       public DbSet <Course> Courses {get; set;}
-
-       protected override void OnModelCreating(ModelBuilder m)
-       {
-
-        m.Entity<Student>()
-        .HasOne( s=> s.Course)
-        .WithMany( c => c.Students)
-        .HasForeignKey( s => s.CourseId);
-
-        m.Entity<Course>().HasData
-        (
-                new Course { CourseId = 1, Title = "Mathematics 101", Description = "Basic Mathematics"},
-
-                 new Course { CourseId = 2, Title = "History 101", Description = "Introduction to History"}
-
-        );
-       }
-    
-}
-
-using System.ComponentModel.DataAnnotations;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using dotnetapp.Services;
+using Microsoft.AspNetCore.Mvc;
+using dotnetapp.Models;
 
-namespace dotnetapp.Models
+namespace dotnetapp.Controllers
 {
-    // Write your Course class here...
-    public class Course
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ProductController : ControllerBase
     {
-        public int CourseId {get; set;}
 
-        [Required]
-        [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters.")]
-        public string Title {get; set;}
+        private readonly ProductService ps;
 
-        [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
-        public string Description {get; set;}
+        public ProductController(ProductService ps1)
+        {
+            ps = ps1;
+        }
 
-        public ICollection<Student> Students {get; set;}
+        [HttpGet]
 
+        public ActionResult<IEnumerable<Product>> GetAllProducts()
+        {
+            var products = ps.GetAllProduct();
+            return Ok(products);
+        }
+
+        [HttpGet("{productId}")]
+
+        public ActionResult GetProductById(int productId)
+        {
+            Product product  = ps.GetProductById(productId);
+            if(product== null){
+                return NotFound();
+            }
+
+            return Ok(product);
+        }
+
+        [HttpPost]
+
+        public ActionResult CreateProduct (Product newProduct)
+        {
+            if(newProduct == null)
+            {
+                return NotFound();
+            }
+            ps.AddProduct(newProduct);
+            return CreatedAtAction("CreateProduct", newProduct);
+        }
+
+        [HttpPut("{id}")]
+
+        public IActionResult UpdateProduct(int id, Product updatedProduct)
+        {
+            ps.UpdateProduct(id, updatedProduct);
+            return NoContent();
+
+            return NotFound();
+        }
+
+        [HttpDelete("{id}")]
+
+        public IActionResult DeleteProduct(int id)
+        {
+          ps.DeleteProduct(id);
+          return NoContent();
+        }
+        
     }
 }
 
 
-using System.ComponentModel.DataAnnotations;
-namespace dotnetapp.Models
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using dotnetapp.Models;
+
+namespace dotnetapp.Services
 {
+    public class ProductService
+    {
+        public static List<Product> _products = new List<Product>()
+        {
+            new Product {Id = 1, Name = "Product 1", Price = 10.99m, Description = "Destination 1"},
+            new Product {Id = 2, Name = "Product 2", Price = 20.49m, Description = "Destination 2"},
+            new Product {Id = 3, Name = "Product 3", Price = 15.99m, Description = "Destination 3"}
+        };
 
-    // Write your Student class here...
-    public class Student{
+        public IEnumerable<Product> GetAllProduct()
+        {
+            return _products;
+        }
 
-         public int StudentId {get; set;}
+        public Product GetProductById (int ProductId)
+        {
+            return _products.FirstOrDefault(p => p.Id == ProductId);
 
-    [Required]
-    [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters.")]
-    public string Name {get; set;}
+        }
 
-    [Required]
-    [EmailAddress]
-    public string Email {get; set;}
+        public void AddProduct(Product newProduct)
+        {
+            _products.Add(newProduct);
+            
+        }
 
-    public int YearOfJoining {get; set;}
+        public void UpdateProduct (int id, Product updatedProduct)
+        {
+            var product = _products.Find( p => p.Id == id);
 
-    public int CourseId {get; set;}
+            product.Name = updatedProduct.Name;
+             product.Price = updatedProduct.Price;
+              product.Description = updatedProduct.Description;
 
-    public Course Course {get; set;}
+        }
 
+        public void DeleteProduct(int id)
+        {
+            var product = _products.Find(p => p.Id ==id);
+
+            _products.Remove(product);
+        }
     }
-   
 }
+
+program.cs
+using dotnetapp.Models;
+using dotnetapp.Services;
+var builder = WebApplication.CreateBuilder(args);
+
+// Add Event services to the container.
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<ProductService>();
+
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
+
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using dotnetapp.Models;
-
 using System.Threading.Tasks;
 
-namespace dotnetapp.Controllers
+namespace dotnetapp.Models
 {
-    // [Route("[controller]")]
-   public class StudentController : Controller
-   {
-    private readonly AppDbContext db;
-
-    public StudentController(AppDbContext context)
+    public class Product
     {
-        db = context;
+        public int Id {get; set;}
 
+        public string Name {get; set;}
+
+        public decimal Price {get; set;}
+
+        public string Description {get; set;} 
     }
-
-    // public async Task<IActionResult> DisplayAllStudents()
-    // {
-    //     var students = await db.Students.Include(s => s.Course).ListAsync();
-    //     return View(students);
-    // }
-
-    public IActionResult DisplayAllStudents()
-    {
-        var students = db.Students.Include(s => s.Course).ToList();
-        return View(students);
-    }
-
-    public IActionResult SearchStudentsByName()
-    {
-        return View();
-    }
-
-    public async Task<IActionResult> SearchStudentsByName(string query)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return RedirectToAction(nameof(DisplayAllStudents));
-        }
-
-        var students = await db.Students.Include(s => s.Course)
-        .Where( s => s.Name.ToLower().Contains(query.ToLower())).ToListAsync();
-        return View("DisplayAllStudents",students);
-    }
-
-    public ActionResult AddStudent()
-    {
-        ViewBag.Courses = new SelectList(db.Courses, "CourseId", "Title");
-        return View();
-    }
-
-    [HttpPost]
-
-    public IActionResult AddStudent(Student student)
-    {
-        db.Add(student);
-        db.SaveChanges();
-        return RedirectToAction(nameof(DisplayAllStudents));
-
-        ViewBag.Courses = new SelectList(db.Courses,"CourseId","Title");
-        return View(student);
-    }
-
-    public IActionResult UpdateStudent(int id)
-    {
-        var student = db.Students.Find(id);
-        if(student == null)
-        {
-            return NotFound();
-        }
-
-        ViewBag.Courses = new SelectList(db.Courses, "CourseId", "Title");
-        return View(student); 
-    }
-
-    [HttpPost]
-    public IActionResult UpdateStudent(Student updatedStudent)
-    {
-
-        var studentToUpdate = db.Students.Find(updatedStudent.StudentId);
-        studentToUpdate.Name = updatedStudent.Name;
-         studentToUpdate.Email = updatedStudent.Email;
-          studentToUpdate.YearOfJoining = updatedStudent.YearOfJoining;
-           studentToUpdate.CourseId = updatedStudent.CourseId;
-           db.SaveChanges();
-           return RedirectToAction(nameof(DisplayAllStudents));
-
-           ViewBag.Courses = new SelectList(db.Courses,"CourseId","Title");
-           return View(updatedStudent);
-    }
-   }
-
 }
-
-
